@@ -7,7 +7,10 @@ const compareErrorMessage = require('./helpers/compareErrorMessage');
 
 const nodeModulesPath = path.resolve(__dirname, 'fixtures', 'node_modules');
 
-async function compileAndCompare(fixture, { lessLoaderOptions, lessLoaderContext, resolveAlias, webpackConf } = {}) {
+async function compileAndCompare(
+  fixture,
+  { lessLoaderOptions, lessLoaderContext, resolveAlias, webpackConf } = {}
+) {
   let inspect;
   const rules = moduleRules.basic(lessLoaderOptions, lessLoaderContext, (i) => {
     inspect = i;
@@ -46,14 +49,16 @@ test('should add all resolved imports as dependencies', async () => {
     },
   });
 
-  expect(dependencies.sort()).toEqual([
-    lessFixturePath('import.less'),
-    lessFixturePath('css.css'),
-    lessFixturePath('basic.less'),
-  ].sort());
+  expect(dependencies.sort()).toEqual(
+    [
+      lessFixturePath('import.less'),
+      lessFixturePath('css.css'),
+      lessFixturePath('basic.less'),
+    ].sort()
+  );
 });
 
-test('should resolve all imports from node_modules using webpack\'s resolver', async () => {
+test("should resolve all imports from node_modules using webpack's resolver", async () => {
   await compileAndCompare('import-webpack');
 });
 
@@ -70,11 +75,13 @@ test('should add all resolved imports as dependencies, including node_modules', 
     },
   });
 
-  expect(dependencies.sort()).toEqual([
-    lessFixturePath('import-webpack.less'),
-    lessFixturePath('../node_modules/some/module.less'),
-    lessFixturePath('../node_modules/some/css.css'),
-  ].sort());
+  expect(dependencies.sort()).toEqual(
+    [
+      lessFixturePath('import-webpack.less'),
+      lessFixturePath('../node_modules/some/module.less'),
+      lessFixturePath('../node_modules/some/css.css'),
+    ].sort()
+  );
 });
 
 test('should resolve aliases as configured', async () => {
@@ -101,13 +108,15 @@ test('should add all resolved imports as dependencies, including aliased ones', 
     },
   });
 
-  expect(dependencies.sort()).toEqual([
-    lessFixturePath('import-webpack-alias.less'),
-    lessFixturePath('../node_modules/some/module.less'),
-  ].sort());
+  expect(dependencies.sort()).toEqual(
+    [
+      lessFixturePath('import-webpack-alias.less'),
+      lessFixturePath('../node_modules/some/module.less'),
+    ].sort()
+  );
 });
 
-test('should resolve all imports from the given paths using Less\' resolver', async () => {
+test("should resolve all imports from the given paths using Less' resolver", async () => {
   await compileAndCompare('import-paths', {
     lessLoaderOptions: { paths: [__dirname, nodeModulesPath] },
   });
@@ -127,21 +136,35 @@ test('should add all resolved imports as dependencies, including those from the 
     },
   });
 
-  expect(dependencies.sort()).toEqual([
-    lessFixturePath('import-paths.less'),
-    lessFixturePath('../node_modules/some/module.less'),
-  ].sort());
+  expect(dependencies.sort()).toEqual(
+    [
+      lessFixturePath('import-paths.less'),
+      lessFixturePath('../node_modules/some/module.less'),
+    ].sort()
+  );
 });
 
-test('should allow to disable webpack\'s resolver by passing an empty paths array', async () => {
-  const err = await compile('import-webpack', moduleRules.basic({ paths: [] }))
-    .catch(e => e);
+test("should allow to disable webpack's resolver by passing an empty paths array", async () => {
+  const err = await compile(
+    'import-webpack',
+    moduleRules.basic({ paths: [] })
+  ).catch((e) => e);
 
   expect(err).toBeInstanceOf(Error);
   expect(err.message).toMatch(/'~some\/css\.css' wasn't found/);
 });
 
-test('should not try to resolve import urls', async () => {
+// This test was invalid because it tested imports like this:
+//   @import url("//fonts.googleapis.com/css?family=Roboto:300,400,500");
+// and expected them to be preserved in the output of Less and not resolved.
+// See https://github.com/less/less.js/pull/2955
+// Because of a bug in Less <3.0, imports with the substring '/css' indeed were
+// parsed as CSS imports, i.e. were preserved. Now that the bug has been fixed,
+// if you need to preserve an import that doesn't have the `.css` extension,
+// use the `(css)` import option:
+//   @import (css) url("//fonts.googleapis.com/css?family=Roboto:300,400,500");
+// That's how the Less language is designed to work.
+test('should not try to resolve CSS imports with URLs', async () => {
   await compileAndCompare('import-url');
 });
 
@@ -191,9 +214,13 @@ test('should generate source maps with sourcesContent by default', async () => {
 
 test('should be possible to override sourceMap.outputSourceFiles', async () => {
   let inspect;
-  const rules = moduleRules.basic({ sourceMap: { outputSourceFiles: false } }, {}, (i) => {
-    inspect = i;
-  });
+  const rules = moduleRules.basic(
+    { sourceMap: { outputSourceFiles: false } },
+    {},
+    (i) => {
+      inspect = i;
+    }
+  );
 
   await compile('source-map', rules);
 
@@ -226,25 +253,30 @@ test('should not alter the original options object', async () => {
   expect(copiedOptions).toEqual(options);
 });
 
-test('should fail if a file is tried to be loaded from include paths and with webpack\'s resolver simultaneously', async () => {
-  const err = await compile('error-mixed-resolvers', moduleRules.basic({ paths: [nodeModulesPath] }))
-    .catch(e => e);
+test("should fail if a file is tried to be loaded from include paths and with webpack's resolver simultaneously", async () => {
+  const err = await compile(
+    'error-mixed-resolvers',
+    moduleRules.basic({ paths: [nodeModulesPath] })
+  ).catch((e) => e);
 
   expect(err).toBeInstanceOf(Error);
   compareErrorMessage(err.message);
 });
 
 test('should provide a useful error message if the import could not be found', async () => {
-  const err = await compile('error-import-not-existing', moduleRules.basic())
-    .catch(e => e);
+  const err = await compile(
+    'error-import-not-existing',
+    moduleRules.basic()
+  ).catch((e) => e);
 
   expect(err).toBeInstanceOf(Error);
   compareErrorMessage(err.message);
 });
 
 test('should provide a useful error message if there was a syntax error', async () => {
-  const err = await compile('error-syntax', moduleRules.basic())
-    .catch(e => e);
+  const err = await compile('error-syntax', moduleRules.basic()).catch(
+    (e) => e
+  );
 
   expect(err).toBeInstanceOf(Error);
   compareErrorMessage(err.message);
@@ -261,17 +293,23 @@ test('should add a file with an error as dependency so that the watcher is trigg
   };
   const rules = moduleRules.basic({}, lessLoaderContext);
 
-  await compile('error-import-file-with-error', rules)
-    .catch(e => e);
+  await compile('error-import-file-with-error', rules).catch((e) => e);
 
-  expect(dependencies.sort()).toEqual([
-    lessFixturePath('error-import-file-with-error.less'),
-    lessFixturePath('error-syntax.less'),
-  ].sort());
+  expect(dependencies.sort()).toEqual(
+    [
+      lessFixturePath('error-import-file-with-error.less'),
+      lessFixturePath('error-syntax.less'),
+    ].sort()
+  );
 });
 
 test('should be able to import a file with an absolute path', async () => {
-  const importedFilePath = path.resolve(__dirname, 'fixtures', 'less', 'import-absolute-target.less');
+  const importedFilePath = path.resolve(
+    __dirname,
+    'fixtures',
+    'less',
+    'import-absolute-target.less'
+  );
   const loaderOptions = {
     globalVars: {
       absolutePath: `'${importedFilePath}'`,
@@ -281,8 +319,7 @@ test('should be able to import a file with an absolute path', async () => {
   const rules = moduleRules.basic(loaderOptions, {}, (i) => {
     inspect = i;
   });
-  await compile('import-absolute', rules)
-      .catch(e => e);
+  await compile('import-absolute', rules).catch((e) => e);
   const [css] = inspect.arguments;
   expect(css).toEqual('.it-works {\n  color: yellow;\n}\n');
 });
@@ -308,8 +345,10 @@ test('should use the replaced module', async () => {
     },
   });
 
-  expect(dependencies.sort()).toEqual([
-    lessFixturePath('module-replace.less'),
-    lessFixturePath('module-replace/b.less'),
-  ].sort());
+  expect(dependencies.sort()).toEqual(
+    [
+      lessFixturePath('module-replace.less'),
+      lessFixturePath('module-replace/b.less'),
+    ].sort()
+  );
 });

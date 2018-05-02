@@ -9,25 +9,32 @@ function compile(fixture, moduleRules, resolveAlias = {}, webpackConf) {
     const entry = path.resolve(fixturePath, 'less', `${fixture}.less`);
 
     /* eslint-disable no-param-reassign */
-    webpackConf = Object.assign({
-      entry,
-      output: {
-        path: outputPath,
-        filename: 'bundle', // omitting the js extension to prevent jest's watcher from triggering
+    webpackConf = Object.assign(
+      {
+        mode: 'development',
+        entry,
+        output: {
+          path: outputPath,
+          // omitting the js extension to prevent jest's watcher from triggering
+          filename: 'bundle',
+        },
+        module: {
+          rules: moduleRules,
+        },
+        resolve: {
+          alias: resolveAlias,
+        },
       },
-      module: {
-        rules: moduleRules,
-      },
-      resolve: {
-        alias: resolveAlias,
-      },
-    }, webpackConf);
+      webpackConf
+    );
 
     webpack(webpackConf, (err, stats) => {
-      const problem = err || stats.compilation.errors[0] || stats.compilation.warnings[0];
+      const problem =
+        err || stats.compilation.errors[0] || stats.compilation.warnings[0];
 
       if (problem) {
-        const message = typeof problem === 'string' ? problem : 'Unexpected error';
+        const message =
+          typeof problem === 'string' ? problem : 'Unexpected error';
         const error = new Error(problem.message || message);
 
         error.originalError = problem;
